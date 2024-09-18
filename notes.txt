@@ -1,0 +1,25 @@
+sudo apt-get update
+sudo apt-get install -y curl openssh-server ca-certificates tzdata perl
+
+curl https://packages.gitlab.com/install/repositories/gitlab/gitlab-ee/script.deb.sh | sudo bash
+
+sudo EXTERNAL_URL="https://rep.services.voresnet.com" apt-get install gitlab-ee
+
+tail /etc/gitlab/initial_root_password
+
+sudo apt install certbot
+
+sudo mkdir -p /var/www/letsencrypt
+
+sudo apt-get install python3-certbot-dns-cloudflare
+
+sudo mkdir -p /root/.secrets/
+
+ECHO "dns_cloudflare_api_token = <Your token>" > /root/.secrets/cloudflare.ini
+
+sudo certbot certonly --dns-cloudflare --dns-cloudflare-credentials /root/.secrets/cloudflare.ini -d rep.services.voresnet.
+
+nginx['ssl_certificate'] = "/etc/letsencrypt/live/rep.services.voresnet.com/fullchain.pem"
+nginx['ssl_certificate_key'] = "/etc/letsencrypt/live/rep.services.voresnet.com/privkey.pem"
+
+sudo gitlab-ctl reconfigure
