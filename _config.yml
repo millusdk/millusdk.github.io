@@ -22,8 +22,8 @@ title: Emil Refn's Blog
 email: millusdk@gmail.com
 description: >- # this means to ignore newlines until "baseurl:"
   
-domain: millusdk.github.io       # if you want to force HTTPS, specify the domain without the http at the start, e.g. example.com
-url: https://millusdk.github.io  # the base hostname and protocol for your site, e.g. http://example.com
+domain: blog.emilrefn.dk       # if you want to force HTTPS, specify the domain without the http at the start, e.g. example.com
+url: https://blog.emilrefn.dk  # the base hostname and protocol for your site, e.g. http://example.com
 baseurl: "" # the subpath of your site, e.g. /blog
 twitter_username: millusdk
 github_username:  millusdk
@@ -32,6 +32,8 @@ github_username:  millusdk
 theme: minima
 plugins:
   - jekyll-feed
+
+markdown: redcarpet
 
 # Exclude from processing.
 # The following items will not be processed, by default.
