@@ -124,7 +124,28 @@ sudo gitlab-ctl reconfigure
 ### Setup a schedule for certbot to automatically renew the certificate
 Certificates from LetsEncrypt have a short lifetime, as such, they will need to be renewed regularly.
 
-We can setup a schedule for this, automatically renewing the certificate at regular intervals, stopping and starting Gitlab when the renewal happens.
+Luckily the Certbot installer automatically sets up a system.d timer, which runs twice a day and renews the certificate automatically when it is about to expire.
+
+The automatic renewal updates the certificate on the filesystem, however, it does not configure Gitlab to use the new certificate automatically, that however can be handled by using the built in hook system in Certbot[^3].
+
+We can setup a schedule for this, automatically renewing the certificate at regular intervals, restarting Gitlab when a renewal happens. As specified in[^3] there are three hooks:
+- Pre
+- Post
+- Deploy
+
+Since we only want to restart Gitlab if the certificate is sucessfully renewed, we want to make a deploy hook. All hooks for Certbot are stored in the folders under `/etc/letsencrypt/renewal-hooks`. We want to place our script to restart Gitlab in an executable script in the deploy folder. The `gitlab-ctl` executable exposes a restart method, that we can use, so lets create a deploy hook calling it:
+{% highlight bash %}
+echo "gitlab-ctl restart" > /etc/letsencrypt/renewal-hooks/deploy/gitlab.sh
+chmod 777 /etc/letsencrypt/renewal-hooks/deploy/gitlab.sh
+{% endhighlight %}
+
+With the deployment hook setup, we can test it by forcing a renewal through Certbot:
+{% highlight bash %}
+certbot renew --force-renewal
+{% endhighlight %}
+
+After this you can verify in your browser that the certificate has been renewed.
+> **NOTE:** If you are testing this repediately, be aware that there is a rate limit for how many renewals you can make in a given time period
 
 ## Next steps
 The next steps from here will be:
@@ -132,5 +153,6 @@ The next steps from here will be:
 - Setup Kubernetes cluster
 - Setup Flux and connect to Gitlab and Kubernetes allowing for deployments to the cluster
 
-[^1]: [Installation system requirements](https://docs.gitlab.com/ee/install/requirements.html)
-[^2]: [Running GitLab in a memory-constrained environment](https://docs.gitlab.com/omnibus/settings/memory_constrained_envs.html)
+[^1]: [Gitlab - Installation system requirements](https://docs.gitlab.com/ee/install/requirements.html)
+[^2]: [Gitlab - Running GitLab in a memory-constrained environment](https://docs.gitlab.com/omnibus/settings/memory_constrained_envs.html)
+[^3]: [Certbot - User Guide - Renewing certificates](https://eff-certbot.readthedocs.io/en/latest/using.html#renewing-certificates)
