@@ -7,14 +7,14 @@ categories: gitlab proxmox homelab
 I want to start experimenting with Kubernetes and CI/CD workflows. In order to do this, I need a place to store code and configurations for these experiments.
 I could store these on Github, however I would like the complete system architecture to be as self-contained as possible.
 
-There are a number of different free applications that can handle storing the code and configuration, however I would like a solution that is free to use, allows for running CI/CD workflows and integrates well with Kubernetes. Because of this I have chosen to look at Gitlab, as I have experience using that from work.
+There are a number of different free applications that can handle storing the code and configuration, however I would like a solution that is free to use, allows for running CI/CD workflows and integrates well with Kubernetes. Because of this I have chosen to look at Gitlab, as I also have experience using that from work.
 
-At home I have a small homelab consisting of two Intel NUCs running Proxmox and a TrueNAS Core server that I use for backups and off-host storage, such as for ISO's and container images for Proxmox.
+At home I have a small homelab consisting of two Intel NUCs running Proxmox in a cluster and a TrueNAS Core server that I use for backups and off-cluster storage, such as for ISO's and container images for Proxmox.
 
-One of the features I like about Proxmox is the ability to run LXC containers, which are similar in nature to a lightweight VM or Docker container, but unlike Docker containers, they are persistent and have persistent storage, making them ideal for running Gitlab, as the data entered into Gitlab, ie. the content of the repositories themselves, need to be stored and maintained across reboots of the container and the host system, something that would require a persistent volume in Docker.
+One of the features I like about Proxmox is the ability to run LXC containers, which are similar in nature to a lightweight VM or Docker container, but unlike Docker containers, they are persistent and have persistent storage, making them ideal for running Gitlab, as the data entered into Gitlab, ie. the content of the repositories themselves, need to be stored and maintained across reboots of the container and the host system, something that would require a persistent volume in Docker, and as such be harder (slightly) harder to setup.
 
 ## Setting up the LXC container
-As the base for my Gitlab container I have chosen Ubuntu 22.04, as this is the same base system I use for other LXC containers that I make, and I am familiar with the apt based package management used by Ubuntu.
+As the base for my Gitlab container I have chosen Ubuntu 22.04, as this is the same base system I have used for other LXC containers that I already have running, and I am familiar with the apt based package management used by Ubuntu.
 
 ### Defining the container
 Gitlab's recommendations for a normal installation is 8 vCPU's and 16GB of memory[^1]. However, since this system is designed for very few users, *ME*, I have chosen to look at the specs for a memory constrained deployment[^2], and beefed those up a little bit. As such I have chosen to create one with the following specifications:
@@ -40,7 +40,7 @@ sudo apt install -y curl openssh-server ca-certificates tzdata perl
 
 ## Installing Gitlab
 
-Once the prerequisites are installed we are ready to start installing Gitlab. To make it easy, Gitlab have made a script that adds their installer to apt, making it incredibly easy to install it. This script can be executed easily like this:
+Once the prerequisites are installed we are ready to start installing Gitlab itself. To make it easy, Gitlab have made a script that adds their repository to apt, making it incredibly easy to install it. This script can be executed like this:
 
 {% highlight bash %}
 curl https://packages.gitlab.com/install/repositories/gitlab/gitlab-ee/script.deb.sh | sudo bash
@@ -48,7 +48,7 @@ curl https://packages.gitlab.com/install/repositories/gitlab/gitlab-ee/script.de
 
 > **CAUTION:**  Executing scripts directly from the internet is generally not recommended! You should always download and check what the script does before executing it.
 
-Once the script has run we are able to install Gitlab. We can set the external URL for Gitlab when installing by setting it as temporary environment variable:
+Once the script is done we are able to install Gitlab. We can set the external URL for Gitlab when installing by setting it as temporary environment variable during installation:
 
 {% highlight bash %}
 sudo EXTERNAL_URL="<domain name for Gitlab>" apt install gitlab-ee
@@ -63,10 +63,10 @@ tail /etc/gitlab/initial_root_password
 {% endhighlight %}
 
 ## Enabling HTTPS
-By default Gitlab uses a self-signed certificate, unless the server is globally routeable on the domain name you have configured, which mine isn't.
-This can cause issues if you want to use Gitlab CI/CD, as you will need to install this certificate no all runners, or they won't be able to connect.
+By default Gitlab uses a self-signed certificate, unless the server is globally accessible, tied to the domain name you have configured. My system is not globally accessible, as it is only available on my internal network.
+This can cause issues if you want to use Gitlab CI/CD, as you will need to install this certificate no all runners, or they won't be able to connect. Additionally this certificate has a short lifespan, meaning that you will need to update the certificate on the runners regularly.
 
-Because I don't want to install the self-signed certificate on any CI/CD runners I set up, and because it has a short lifetime, I will install Certbot and use that along with LetsEncrypt and Cloudflare to generate a certificate that is trusted.
+Because I don't want to install the self-signed certificate on any CI/CD runners I set up, and because of its short validity period, I will install Certbot and use that along with LetsEncrypt and Cloudflare to generate a certificate that is trusted.
 
 ### Install and configure Certbot and Cloudflare  integrations
 First we install Certbot.
@@ -74,7 +74,7 @@ First we install Certbot.
 sudo apt install certbot
 {% endhighlight %}
 
-Secondly we create the directory where certbot will store the certificates that it generates
+Secondly we create the directory where certbot will store the certificates that it generates along with its own configuration:
 {% highlight bash %}
 sudo mkdir -p /var/www/letsencrypt
 {% endhighlight %}
@@ -85,7 +85,7 @@ sudo apt install python3-certbot-dns-cloudflare
 {% endhighlight %}
 
 Once certbot has been installed along with the Cloudflare integration, we need to setup and configure integration.
-To do this, we need to create an API Token for cloudflare and store it locally on the server.
+To do this, we need to create an API Token for cloudflare and store it locally on the server. I will not go into details about creating the API token itself, as that is pretty straight forward, however, I recommend that the token is limited in scope to only the specific DNS zone needed by the Gitlab server.
 
 It is important to keep this token safe, as it can be used to make API calls to Cloudflare's servers.
 
@@ -96,7 +96,13 @@ sudo mkdir -p /root/.secrets/
 
 Next we store the token in a cloudflare.ini file in the new folder:
 {% highlight bash %}
-ECHO "dns_cloudflare_api_token = <Your API token>" > /root/.secrets/cloudflare.ini
+echo "dns_cloudflare_api_token = <Your API token>" > /root/.secrets/cloudflare.ini
+{% endhighlight %}
+
+We should now limit which users can access this file, in order to keep it safe. System.d timers are run as root as default, so we can limit read to only root using the following command:
+
+{% highlight bash %}
+sudo chmod 400 /root/.secrets/cloudflare.ini
 {% endhighlight %}
 
 Now we can test if we are able to retrieve a certificate from LetsEncrypt, and we can then later use that to configure Gitlab.
