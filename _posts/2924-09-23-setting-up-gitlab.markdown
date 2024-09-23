@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Setting up Gitlab in a homelab with HTTPS, certbot and Cloudflare"
-date:   2024-09-20 20:00:00 +0200
+date:   2024-09-23 08:00:00 +0200
 categories: gitlab proxmox homelab
 ---
 I want to start experimenting with Kubernetes and CI/CD workflows. In order to do this, I need a place to store code and configurations for these experiments.
