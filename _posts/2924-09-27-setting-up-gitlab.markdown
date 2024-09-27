@@ -1,7 +1,7 @@
 ---
 layout: post
 title:  "Setting up Gitlab in a homelab with HTTPS, certbot and Cloudflare"
-date:   2024-09-23 08:00:00 +0200
+date:   2024-09-27 06:45:00 +0200
 categories: gitlab proxmox homelab
 ---
 I want to start experimenting with Kubernetes and CI/CD workflows. In order to do this, I need a place to store code and configurations for these experiments.
@@ -9,9 +9,7 @@ I could store these on Github, however I would like the complete system architec
 
 There are a number of different free applications that can handle storing the code and configuration, however I would like a solution that is free to use, allows for running CI/CD workflows and integrates well with Kubernetes. Because of this I have chosen to look at Gitlab, as I also have experience using that from work.
 
-At home I have a small homelab consisting of two Intel NUCs running Proxmox in a cluster and a TrueNAS Core server that I use for backups and off-cluster storage, such as for ISO's and container images for Proxmox.
-
-One of the features I like about Proxmox is the ability to run LXC containers, which are similar in nature to a lightweight VM or Docker container, but unlike Docker containers, they are persistent and have persistent storage, making them ideal for running Gitlab, as the data entered into Gitlab, ie. the content of the repositories themselves, need to be stored and maintained across reboots of the container and the host system, something that would require a persistent volume in Docker, and as such be harder (slightly) harder to setup.
+As I have written about in previous [post](/homelab/2024/09/22/homelab-setup.html), I have a small homelab setup. and I will install Gitlab in its own LXC container, keeping it isolaed from other services in my lab.
 
 ## Setting up the LXC container
 As the base for my Gitlab container I have chosen Ubuntu 22.04, as this is the same base system I have used for other LXC containers that I already have running, and I am familiar with the apt based package management used by Ubuntu.
