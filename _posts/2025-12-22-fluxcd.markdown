@@ -1,0 +1,22 @@
+---
+layout: post
+title:  "Setting up continous deployment wit Flux"
+date:   2025-12-22 06:45:00 +0200
+categories: proxmox homelab kubernetes flux
+---
+Having setup a kubernetes cluster in my Proxmox homelab, I want an easy way to deploy my test applications to the cluster, without needing to setup loads of pipelines.
+
+To do this I have chosen to use the GitOps tool [Flux](https://fluxcd.io/). Flux is a continous deployment tool for GitOps workflows, where it monitors your git repositories and reconciles the setup in the Kubernetes Cluster with the definitions in your git repository.
+
+## Setup
+Flux is actually really easy to setup. You need to install the their CLI tool on the same computer as you have kubectl installed, and once that is done, you simply run the bootstrap command pointing at an empty repository, I have pointed it at my own Gitlab server, meaning that the command looks as follows:
+
+{% highlight bash %}
+flux bootstrap gitlab  --token-auth --hostname=<gitlab hostname> --owner=kubernetes --repository=flux --branch=main --path=clusters/home
+{% endhighlight %}
+
+In the command you can see that the repository is placed in the kubernetes group and called flux. adding the parameter `--apth=cluster/home` allows me to later setup and run flux on multiple kubernetes clusters, with the current one being called `home`.
+
+Once th command has been run, you will be asked for a PAT for the gitlab instance. I have created a user on my Gitlab instance falled "Flux", which is able to connect to Gitlab and read and commit data from the to repositories.
+
+## Example repo
