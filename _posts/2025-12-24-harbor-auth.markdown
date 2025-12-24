@@ -43,7 +43,7 @@ spec:
         - name: harborcreds
       containers:
         - name: whoami
-          image: <harboer url>/dockerhub/traefik/whoami
+          image: <harbor url>/dockerhub/traefik/whoami
           ports:
             - containerPort: 80
 {% endhighlight %}
